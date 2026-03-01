@@ -2,29 +2,46 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Needed for the dependency submission step to write to the dependency graph
+    permissions:
+      contents: write
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
+      - name: Debug - find pom.xml (temporary)
+        run: |
+          pwd
+          ls -la
+          find . -name "pom.xml" -print
 
-    - name: Build with Maven
-      # If your pom.xml is in a folder, change '.' to './folder-name'
-      run: mvn -B package
-      working-directory: . 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+          # If your pom.xml is NOT at repo root, change this (examples below)
+          cache-dependency-path: |
+            pom.xml
+            **/pom.xml
 
-    - name: Update dependency graph
-      uses: advanced-security/maven-dependency-submission-action@v4
+      - name: Build with Maven
+        run: mvn -B -ntp package
+        # If your pom.xml is in a folder, set it here (example: ./service)
+        working-directory: .
+
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@v4
+        with:
+          # If your pom.xml is in a folder, set it here too (example: service)
+          directory: .
